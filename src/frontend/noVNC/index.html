@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en" class="noVNC_loading">
+
+<head>
+    <title>noVNC</title>
+
+    <link rel="icon" type="image/x-icon" href="app/images/icons/novnc.ico">
+
+    <!-- Apple iOS Safari settings -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="bootstrap/css/bootstrap.min.css">
+
+    <script type="module" crossorigin="anonymous" src="bootstrap/js/bootstrap.min.js"></script>
+    <!-- https://unpkg.com/browse/vue@3.2.47/dist/vue.global.prod.js 
+        https://unpkg.com/vue@3/dist/vue.global.prod.js
+    -->
+    <script src="bootstrap/js/vue.global.prod.js"></script>
+    <script src="bootstrap/js/axios.min.js"></script>
+</head>
+
+<body>
+    <div id="app">
+        <div class="container overflow-hidden text-center mx-auto">
+            <div class="row gy-5">
+                <div class="col-12">
+                    <nav class="navbar bg-body-tertiary">
+                        <div class="container-fluid">
+                            <form class="d-flex" role="search">
+                                <!--ShowCreateNoVNC
+                                <button class="btn btn-outline-success" type="button" data-bs-toggle="modal"
+                                    data-bs-target="#staticBackdrop">New noVNC</button>
+                                -->
+                                <button class="btn btn-outline-success" type="button" @click="ShowCreateNoVNC">New
+                                    noVNC</button>
+                            </form>
+                        </div>
+                    </nav>
+                </div>
+                <div class="row justify-content-around p-3">
+                    <div class="card" style="width: 18rem;" v-for="vnc in noVNCs">
+                        <div class="card-body">
+                            <h5 class="card-title">{{vnc.name}}</h5>
+                            <p class="card-text">{{vnc.ip}}:{{vnc.port}}</p>
+                        </div>
+                        <div class="card-body">
+                            <button class="btn btn-outline-danger m-1" type="button" 
+                                @click="DeleteNoVNC(vnc.id)">
+                                Delete
+                            </button>
+                            <button class="btn btn-outline-success m-1" type="button" 
+                                @click="OpenNoVNC(vnc)">
+                                Open
+                            </button>
+                        </div>
+                    </div>
+                   
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal -->
+        <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+            aria-labelledby="staticBackdropLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h1 class="modal-title fs-5" id="staticBackdropLabel">Create noVNC</h1>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form class="g-3 needs-validation" novalidate id="vncForm">
+                        <div class="modal-body row">
+                            <div class="col-md-12">
+                                <label for="validationCustomUsername" class="form-label">名称</label>
+                                <div class="input-group has-validation">
+                                    <input v-model="state.name" type="text" class="form-control"
+                                        id="validationCustomUsername" aria-describedby="inputGroupPrepend" required>
+                                    <div class="invalid-feedback">
+                                        Please provide a valid name.
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <label for="validationCustomIp" class="form-label">IP</label>
+                                <div class="input-group has-validation">
+                                    <input v-model="state.ip" type="text" class="form-control" id="validationCustomIp"
+                                        aria-describedby="inputGroupPrepend" required>
+                                    <div class="invalid-feedback">
+                                        Please provide a valid ip.
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="validationCustomPort" class="form-label">Port</label>
+                                <div class="input-group has-validation">
+                                    <input v-model="state.port" type="text" class="form-control"
+                                        id="validationCustomPort" aria-describedby="inputGroupPrepend" required>
+                                    <div class="invalid-feedback">
+                                        Please provide a valid port.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="button" class="btn btn-primary" @click="CreateNoVNC">Create</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+<script>
+    /*
+    // Example starter JavaScript for disabling form submissions if there are invalid fields
+    (() => {
+        'use strict'
+
+        // Fetch all the forms we want to apply custom Bootstrap validation styles to
+        const forms = document.querySelectorAll('.needs-validation')
+
+        // Loop over them and prevent submission
+        Array.from(forms).forEach(form => {
+            form.addEventListener('submit', event => {
+                if (!form.checkValidity()) {
+                    event.preventDefault()
+                    event.stopPropagation()
+                }
+
+                form.classList.add('was-validated')
+            }, false)
+        })
+    })()
+    */
+    const { createApp, ref, reactive, onMounted } = Vue
+    createApp({
+        setup() {
+            const myModal = ref(null)
+            const state = reactive({
+                name: '',
+                ip: '',
+                port: '',
+            })
+            const noVNCs = ref([])
+
+            const ShowCreateNoVNC = () => {
+                myModal.value = new bootstrap.Modal('#staticBackdrop', {
+                    keyboard: false
+                })
+                myModal.value.show()
+            }
+
+            const listNoVNC = async() => {
+                const r = await axios.get('/api/ng-noVNC/list')
+                noVNCs.value = r.data.data
+            }
+
+            const CreateNoVNC = async () => {
+                const form = document.querySelector('#vncForm')
+                if (!form.checkValidity()) {
+                    form.classList.add('was-validated')
+                    return
+                }
+                const r = await axios.post('/api/ng-noVNC/create', state)
+                myModal.value.hide()
+                state.name = ''
+                state.ip = ''
+                state.port = ''
+                form.classList.remove('was-validated')
+                listNoVNC()
+            }
+
+            const DeleteNoVNC = async(id)=> {
+                const r = await axios.post('/api/ng-noVNC/delete', {"id":id})
+                listNoVNC()
+            }
+
+            const OpenNoVNC = (vnc) => {
+                const url = `${window.location.origin}/vnc.html?path=api/ng-noVNC/websockify&vncServer=${vnc.ip}:${vnc.port}`
+                window.open(url)
+            } 
+
+            onMounted(()=>{
+                listNoVNC()
+            })
+
+            return {
+                state,noVNCs,
+                CreateNoVNC, ShowCreateNoVNC,DeleteNoVNC,OpenNoVNC
+            }
+        }
+    }).mount("#app")
+</script>
+
+</html>

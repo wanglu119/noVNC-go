@@ -1,0 +1,9 @@
+{
+  "editor.tabSize": 2,
+  "go.gopath": "${workspaceFolder}",
+  "gopls": {
+    "build.buildFlags": [
+      "-tags=debug"
+    ]
+  }
+}
